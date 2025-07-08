@@ -96,6 +96,9 @@ import Collab, {
 import { AppFooter } from "./components/AppFooter";
 import { AppMainMenu } from "./components/AppMainMenu";
 import { AppWelcomeScreen } from "./components/AppWelcomeScreen";
+import { AuthDialog } from "./components/Auth/AuthDialog";
+import { CloudSyncDialog } from "./components/CloudSync/CloudSyncDialog";
+import { CloudDrawingsDialog } from "./components/CloudSync/CloudDrawingsDialog";
 import {
   ExportToExcalidrawPlus,
   exportToExcalidrawPlus,
@@ -127,6 +130,7 @@ import CollabError, { collabErrorIndicatorAtom } from "./collab/CollabError";
 import { useHandleAppTheme } from "./useHandleAppTheme";
 import { getPreferredLanguage } from "./app-language/language-detector";
 import { useAppLangCode } from "./app-language/language-state";
+import { authService, type DrawingData } from "./data/supabase";
 import DebugCanvas, {
   debugRenderer,
   isVisualDebuggerEnabled,
@@ -338,6 +342,14 @@ const ExcalidrawWrapper = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const isCollabDisabled = isRunningInIframe();
 
+  // Auth and Cloud Sync state
+  const [user, setUser] = useState<any>(null);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [isCloudSyncDialogOpen, setIsCloudSyncDialogOpen] = useState(false);
+  const [isCloudDrawingsDialogOpen, setIsCloudDrawingsDialogOpen] =
+    useState(false);
+  const [, setCurrentDrawingId] = useState<string | null>(null);
+
   const { editorTheme, appTheme, setAppTheme } = useHandleAppTheme();
 
   const [langCode, setLangCode] = useAppLangCode();
@@ -361,6 +373,34 @@ const ExcalidrawWrapper = () => {
     setTimeout(() => {
       trackEvent("load", "version", getVersion());
     }, VERSION_TIMEOUT);
+
+    // Check authentication state
+    const checkAuth = async () => {
+      try {
+        const currentUser = await authService.getCurrentUser();
+        setUser(currentUser);
+      } catch (error) {
+        console.error("Auth check failed:", error);
+      }
+    };
+
+    checkAuth();
+
+    // Listen to auth state changes
+    const {
+      data: { subscription },
+    } = authService.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN") {
+        setUser(session?.user || null);
+      } else if (event === "SIGNED_OUT") {
+        setUser(null);
+        setCurrentDrawingId(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const [excalidrawAPI, excalidrawRefCallback] =
@@ -739,6 +779,68 @@ const ExcalidrawWrapper = () => {
     [setShareDialogState],
   );
 
+  // Cloud sync handlers
+  const handleAuthSuccess = useCallback(() => {
+    setIsAuthDialogOpen(false);
+  }, []);
+
+  const handleSaveToCloud = useCallback(() => {
+    if (!user) {
+      setIsAuthDialogOpen(true);
+    } else {
+      setIsCloudSyncDialogOpen(true);
+    }
+  }, [user]);
+
+  const handleLoadFromCloud = useCallback(() => {
+    if (!user) {
+      setIsAuthDialogOpen(true);
+    } else {
+      setIsCloudDrawingsDialogOpen(true);
+    }
+  }, [user]);
+
+  const handleSaveSuccess = useCallback(
+    (drawingId: string) => {
+      setCurrentDrawingId(drawingId);
+      setIsCloudSyncDialogOpen(false);
+      if (excalidrawAPI) {
+        excalidrawAPI.setToast({
+          message: t("cloudSync.saveSuccess") || "Drawing saved to cloud!",
+          closable: true,
+          duration: 3000,
+        });
+      }
+    },
+    [excalidrawAPI],
+  );
+
+  const handleLoadDrawing = useCallback(
+    (drawingData: DrawingData) => {
+      if (excalidrawAPI) {
+        excalidrawAPI.updateScene({
+          elements: drawingData.elements,
+          captureUpdate: CaptureUpdateAction.IMMEDIATELY,
+        });
+
+        if (drawingData.files && Object.keys(drawingData.files).length > 0) {
+          const filesArray = Object.values(drawingData.files);
+          excalidrawAPI.addFiles(filesArray);
+        }
+
+        setCurrentDrawingId(drawingData.id);
+        setIsCloudDrawingsDialogOpen(false);
+
+        excalidrawAPI.setToast({
+          message: t("cloudSync.loadSuccess") || "Drawing loaded from cloud!",
+          closable: true,
+          duration: 3000,
+        });
+      }
+    },
+    [excalidrawAPI],
+  );
+
   // browsers generally prevent infinite self-embedding, there are
   // cases where it still happens, and while we disallow self-embedding
   // by not whitelisting our own origin, this serves as an additional guard
@@ -1111,6 +1213,20 @@ const ExcalidrawWrapper = () => {
               },
             },
             {
+              label: user ? t("cloudSync.saveToCloud") : t("auth.signIn"),
+              category: DEFAULT_CATEGORIES.export,
+              predicate: true,
+              keywords: ["cloud", "save", "sync", "backup", "signin", "login"],
+              perform: handleSaveToCloud,
+            },
+            {
+              label: t("cloudSync.loadFromCloud"),
+              category: DEFAULT_CATEGORIES.app,
+              predicate: () => !!user,
+              keywords: ["cloud", "load", "open", "sync"],
+              perform: handleLoadFromCloud,
+            },
+            {
               ...CommandPalette.defaultItems.toggleTheme,
               perform: () => {
                 setAppTheme(
@@ -1142,6 +1258,32 @@ const ExcalidrawWrapper = () => {
             ref={debugCanvasRef}
           />
         )}
+
+        {/* Auth Dialog */}
+        <AuthDialog
+          isOpen={isAuthDialogOpen}
+          onClose={() => setIsAuthDialogOpen(false)}
+          onSuccess={handleAuthSuccess}
+        />
+
+        {/* Cloud Sync Dialog */}
+        {excalidrawAPI && (
+          <CloudSyncDialog
+            isOpen={isCloudSyncDialogOpen}
+            onClose={() => setIsCloudSyncDialogOpen(false)}
+            elements={excalidrawAPI.getSceneElements()}
+            appState={excalidrawAPI.getAppState()}
+            files={excalidrawAPI.getFiles()}
+            onSaveSuccess={handleSaveSuccess}
+          />
+        )}
+
+        {/* Cloud Drawings Dialog */}
+        <CloudDrawingsDialog
+          isOpen={isCloudDrawingsDialogOpen}
+          onClose={() => setIsCloudDrawingsDialogOpen(false)}
+          onLoadDrawing={handleLoadDrawing}
+        />
       </Excalidraw>
     </div>
   );

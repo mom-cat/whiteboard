@@ -1,0 +1,41 @@
+.auth-dialog {
+  .auth-dialog-content {
+    padding: 1rem;
+    min-width: 300px;
+  }
+
+  .auth-field {
+    margin-bottom: 1rem;
+  }
+
+  .auth-error {
+    color: var(--color-danger);
+    background-color: var(--color-danger-background);
+    border: 1px solid var(--color-danger);
+    border-radius: 4px;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+
+  .auth-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .auth-switch-mode {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    text-decoration: underline;
+    font-size: 0.875rem;
+    padding: 0.25rem;
+
+    &:hover {
+      color: var(--color-primary-darker);
+    }
+  }
+}
