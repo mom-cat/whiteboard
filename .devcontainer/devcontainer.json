@@ -1,5 +1,5 @@
 {
-  "name": "Excalidraw Dev",
+  "name": "Excalidraw + Rovo CLI",
   "build": {
     "dockerfile": "Dockerfile"
   },
