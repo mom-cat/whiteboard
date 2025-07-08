@@ -2,5 +2,15 @@
   "name": "Excalidraw Dev",
   "build": {
     "dockerfile": "Dockerfile"
+  },
+  "settings": {
+    // 默认终端类型bash
+    "terminal.integrated.defaultProfile.linux": "bash",
+    // 终端提示Rovo状态
+    "terminal.integrated.shellArgs.linux": [
+      "-c",
+      "[ -x $(command -v rovo) ] && echo '✅ Rovo CLI is ready' || echo '❌ Rovo CLI is NOT installed'"
+    ]
   }
+
 }
