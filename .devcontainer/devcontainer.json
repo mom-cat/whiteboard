@@ -1,0 +1,6 @@
+{
+  "name": "Excalidraw Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  }
+}
