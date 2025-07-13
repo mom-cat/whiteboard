@@ -7,6 +7,8 @@ import { t } from "@excalidraw/excalidraw/i18n";
 
 import { authService } from "../../data/supabase";
 
+import "./AuthDialog.scss";
+
 interface AuthDialogProps {
   isOpen: boolean;
   onClose: () => void;

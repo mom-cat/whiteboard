@@ -9,7 +9,15 @@ Excalidraw 是一个开源的虚拟手绘风格白板应用，支持协作和端
 ### 🏠 根目录
 
 ```
-/
+/[TypeScript] Argument of type '{ elements: ExcalidrawElement[]; appState: { viewBackgroundColor: string; name: string | null; zoom: Readonly<{ value: NormalizedZoomValue; }>; ... 82 more ...; followedBy: Set<...>; } | null; }' is not assignable to parameter of type 'readonly ExcalidrawElement[]'. Type '{ elements: ExcalidrawElement[]; appState: { viewBackgroundColor: string; name: string | null; zoom: Readonly<{ value: NormalizedZoomValue; }>; ... 82 more ...; followedBy: Set<...>; } | null; }' is missing the following properties from type 'readonly ExcalidrawElement[]': length, concat, join, slice, and 19 more.
+/workspaces/whiteboard/excalidraw-app/App.tsx:233:30
+    276 |               const sceneData = JSON.parse(decryptedText);
+    277 |               
+  > 278 |               scene = restore(sceneData, null, localDataState);
+        |                                                ^^^^^^^^^^^^^^
+    279 |             }
+    280 |           } catch (error) {
+    281 |             console.error("Error loading excalidraw scene:", error);
 ├── 📄 README.md                    # 项目主要说明文档
 ├── 📄 package.json                 # Monorepo 主配置文件
 ├── 📄 CONTRIBUTING.md              # 贡献指南

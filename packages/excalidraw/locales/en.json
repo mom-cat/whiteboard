@@ -395,7 +395,9 @@
     "link_button": "Export to Link",
     "excalidrawplus_description": "Save the scene to your Excalidraw+ workspace.",
     "excalidrawplus_button": "Export",
-    "excalidrawplus_exportError": "Couldn't export to Excalidraw+ at this moment..."
+    "excalidrawplus_signInRequired": "Sign in to export to your Excalidraw+ workspace",
+    "excalidrawplus_exportError": "Couldn't export to Excalidraw+ at this moment...",
+    "excalidrawplus_uploading": "Uploading..."
   },
   "helpDialog": {
     "blog": "Read our blog",
@@ -468,6 +470,7 @@
   "auth": {
     "signIn": "Sign In",
     "signUp": "Sign Up",
+    "signInRequired": "Please sign in to continue",
     "email": "Email",
     "password": "Password",
     "displayName": "Display Name",

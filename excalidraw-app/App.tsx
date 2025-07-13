@@ -217,6 +217,7 @@ const initializeScene = async (opts: {
 > => {
   const searchParams = new URLSearchParams(window.location.search);
   const id = searchParams.get("id");
+  const excalidrawParam = searchParams.get("excalidraw");
   const jsonBackendMatch = window.location.hash.match(
     /^#json=([a-zA-Z0-9_-]+),([a-zA-Z0-9_-]+)$/,
   );
@@ -229,7 +230,7 @@ const initializeScene = async (opts: {
   } = await loadScene(null, null, localDataState);
 
   let roomLinkData = getCollaborationLinkData(window.location.href);
-  const isExternalScene = !!(id || jsonBackendMatch || roomLinkData);
+  const isExternalScene = !!(id || jsonBackendMatch || roomLinkData || excalidrawParam);
   if (isExternalScene) {
     if (
       // don't prompt if scene is empty
@@ -245,6 +246,41 @@ const initializeScene = async (opts: {
           jsonBackendMatch[2],
           localDataState,
         );
+      } else if (excalidrawParam) {
+        // Handle excalidraw parameter: format is "id,encryptionKey"
+        const [sceneId, encryptionKey] = excalidrawParam.split(",");
+        if (sceneId && encryptionKey) {
+          try {
+            // Import required functions
+            const { supabase } = await import("./data/supabase");
+            const { decryptData } = await import("@excalidraw/excalidraw/data/encryption");
+            
+            // Download scene from Supabase Storage
+            const { data, error } = await supabase.storage
+              .from("excalidraw-exports")
+              .download(`${sceneId}/scenes/${sceneId}`);
+            
+            if (error) {
+              console.error("Failed to load scene from Supabase:", error);
+            } else if (data) {
+              // Decrypt and parse the scene data
+              const encryptedBuffer = await data.arrayBuffer();
+              const encryptedArray = new Uint8Array(encryptedBuffer);
+              
+              // Extract IV from the beginning of the encrypted data
+              const iv = encryptedArray.slice(0, 12); // IV_LENGTH_BYTES = 12
+              const encrypted = encryptedArray.slice(12);
+              
+              const decryptedBuffer = await decryptData(iv, encrypted, encryptionKey);
+              const decryptedText = new TextDecoder().decode(decryptedBuffer);
+              const sceneData = JSON.parse(decryptedText);
+              
+              scene = restore(sceneData, null, localDataState.elements);
+            }
+          } catch (error) {
+            console.error("Error loading excalidraw scene:", error);
+          }
+        }
       }
       scene.scrollToContent = true;
       if (!roomLinkData) {
@@ -925,7 +961,8 @@ const ExcalidrawWrapper = () => {
                         appState={appState}
                         files={files}
                         name={excalidrawAPI.getName()}
-                        onError={(error) => {
+                        user={user}
+                        onError={(error: Error) => {
                           excalidrawAPI?.updateScene({
                             appState: {
                               errorMessage: error.message,
@@ -936,6 +973,9 @@ const ExcalidrawWrapper = () => {
                           excalidrawAPI.updateScene({
                             appState: { openDialog: null },
                           });
+                        }}
+                        onAuthRequired={() => {
+                          setIsAuthDialogOpen(true);
                         }}
                       />
                     );

@@ -15,8 +15,9 @@ export default defineConfig(({ mode }) => {
   return {
     server: {
       port: Number(envVars.VITE_APP_PORT || 3000),
-      // open the browser
-      open: true,
+      host: '0.0.0.0',
+      // open the browser - disabled for Codespace
+      open: false,
     },
     // We need to specify the envDir since now there are no
     //more located in parallel with the vite.config.ts file but in parent dir
